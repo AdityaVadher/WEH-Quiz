@@ -64,22 +64,26 @@ export async function POST(request: Request) {
     }
     await db.update(gameState).set({ roundIndex: payload.question - 1, clueIndex: 0, answerRevealed: false, updatedAt: sql`CURRENT_TIMESTAMP` }).where(eq(gameState.roomCode, ROOM_CODE));
   } else if (payload.action === "reset_question") {
-    const roundGuesses = await db.select({ playerId: guesses.playerId, points: guesses.points })
-      .from(guesses)
-      .where(and(eq(guesses.roomCode, ROOM_CODE), eq(guesses.roundIndex, state.roundIndex)));
-    for (const guess of roundGuesses) {
-      if (guess.points > 0) {
-        await db.update(players)
-          .set({ score: sql`MAX(0, ${players.score} - ${guess.points})` })
-          .where(and(eq(players.roomCode, ROOM_CODE), eq(players.id, guess.playerId)));
+    await db.transaction(async (tx) => {
+      const roundGuesses = await tx.select({ playerId: guesses.playerId, points: guesses.points })
+        .from(guesses)
+        .where(and(eq(guesses.roomCode, ROOM_CODE), eq(guesses.roundIndex, state.roundIndex)));
+      for (const guess of roundGuesses) {
+        if (guess.points > 0) {
+          await tx.update(players)
+            .set({ score: sql`GREATEST(0, ${players.score} - ${guess.points})` })
+            .where(and(eq(players.roomCode, ROOM_CODE), eq(players.id, guess.playerId)));
+        }
       }
-    }
-    await db.delete(guesses).where(and(eq(guesses.roomCode, ROOM_CODE), eq(guesses.roundIndex, state.roundIndex)));
-    await db.update(gameState).set({ clueIndex: 0, answerRevealed: false, updatedAt: sql`CURRENT_TIMESTAMP` }).where(eq(gameState.roomCode, ROOM_CODE));
+      await tx.delete(guesses).where(and(eq(guesses.roomCode, ROOM_CODE), eq(guesses.roundIndex, state.roundIndex)));
+      await tx.update(gameState).set({ clueIndex: 0, answerRevealed: false, updatedAt: sql`CURRENT_TIMESTAMP` }).where(eq(gameState.roomCode, ROOM_CODE));
+    });
   } else if (payload.action === "restart_game") {
-    await db.delete(guesses).where(eq(guesses.roomCode, ROOM_CODE));
-    await db.update(players).set({ score: 0 }).where(eq(players.roomCode, ROOM_CODE));
-    await db.update(gameState).set({ roundIndex: 0, clueIndex: 0, answerRevealed: false, updatedAt: sql`CURRENT_TIMESTAMP` }).where(eq(gameState.roomCode, ROOM_CODE));
+    await db.transaction(async (tx) => {
+      await tx.delete(guesses).where(eq(guesses.roomCode, ROOM_CODE));
+      await tx.update(players).set({ score: 0 }).where(eq(players.roomCode, ROOM_CODE));
+      await tx.update(gameState).set({ roundIndex: 0, clueIndex: 0, answerRevealed: false, updatedAt: sql`CURRENT_TIMESTAMP` }).where(eq(gameState.roomCode, ROOM_CODE));
+    });
   } else {
     return Response.json({ error: "Unknown host action." }, { status: 400 });
   }

@@ -1,31 +1,36 @@
-import { sql } from "drizzle-orm";
-import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { boolean, index, integer, pgTable, serial, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
-export const players = sqliteTable("players", {
-  id: text("id").primaryKey(),
+export const players = pgTable("players", {
+  id: uuid("id").primaryKey().defaultRandom(),
   roomCode: text("room_code").notNull(),
   name: text("name").notNull(),
   nameKey: text("name_key").notNull(),
   score: integer("score").notNull().default(0),
-  joinedAt: text("joined_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-}, (table) => [uniqueIndex("players_room_name_key").on(table.roomCode, table.nameKey)]);
+  joinedAt: timestamp("joined_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("players_room_name_key").on(table.roomCode, table.nameKey),
+  index("players_room_score_idx").on(table.roomCode, table.score.desc(), table.joinedAt.asc()),
+]);
 
-export const gameState = sqliteTable("game_state", {
+export const gameState = pgTable("game_state", {
   roomCode: text("room_code").primaryKey(),
   roundIndex: integer("round_index").notNull().default(0),
   clueIndex: integer("clue_index").notNull().default(0),
-  answerRevealed: integer("answer_revealed", { mode: "boolean" }).notNull().default(false),
-  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  answerRevealed: boolean("answer_revealed").notNull().default(false),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 
-export const guesses = sqliteTable("guesses", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const guesses = pgTable("guesses", {
+  id: serial("id").primaryKey(),
   roomCode: text("room_code").notNull(),
-  playerId: text("player_id").notNull(),
+  playerId: uuid("player_id").notNull().references(() => players.id, { onDelete: "cascade" }),
   roundIndex: integer("round_index").notNull(),
   clueIndex: integer("clue_index").notNull(),
   guess: text("guess").notNull(),
-  correct: integer("correct", { mode: "boolean" }).notNull(),
+  correct: boolean("correct").notNull(),
   points: integer("points").notNull().default(0),
-  submittedAt: text("submitted_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-}, (table) => [uniqueIndex("guesses_player_round").on(table.playerId, table.roundIndex)]);
+  submittedAt: timestamp("submitted_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("guesses_player_round").on(table.playerId, table.roundIndex),
+  index("guesses_room_round_submitted_idx").on(table.roomCode, table.roundIndex, table.submittedAt),
+]);

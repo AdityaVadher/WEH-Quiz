@@ -21,17 +21,22 @@ export async function POST(request: Request) {
   const correct = isCorrectGuess(round, guess);
   const points = correct ? clue.points : 0;
   const db = getDb();
-  const inserted = await db.insert(guesses).values({
-    roomCode: ROOM_CODE,
-    playerId: player.id,
-    roundIndex: state.roundIndex,
-    clueIndex: state.clueIndex,
-    guess,
-    correct,
-    points,
-  }).onConflictDoNothing().returning({ id: guesses.id });
+  const inserted = await db.transaction(async (tx) => {
+    const rows = await tx.insert(guesses).values({
+      roomCode: ROOM_CODE,
+      playerId: player.id,
+      roundIndex: state.roundIndex,
+      clueIndex: state.clueIndex,
+      guess,
+      correct,
+      points,
+    }).onConflictDoNothing().returning({ id: guesses.id });
+    if (rows.length && points) {
+      await tx.update(players).set({ score: sql`${players.score} + ${points}` }).where(eq(players.id, player.id));
+    }
+    return rows;
+  });
 
   if (!inserted.length) return Response.json({ error: "You have already guessed in this round." }, { status: 409 });
-  if (points) await db.update(players).set({ score: sql`${players.score} + ${points}` }).where(eq(players.id, player.id));
   return Response.json({ locked: true, clueNumber: state.clueIndex + 1 });
 }

@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { guesses, players } from "@/db/schema";
 import { normalizePlayerName, PLAYER_COOKIE, ROOM_CODE } from "@/app/game-server";
@@ -13,18 +13,15 @@ export async function POST(request: Request) {
 
   const db = getDb();
   const nameKey = normalizePlayerName(name);
-  const [existing] = await db.select().from(players)
-    .where(and(eq(players.roomCode, ROOM_CODE), eq(players.nameKey, nameKey)))
-    .limit(1);
-  const playerId = existing?.id ?? crypto.randomUUID();
-  if (existing) {
-    await db.update(players).set({ name }).where(eq(players.id, playerId));
-  } else {
-    await db.insert(players).values({ id: playerId, roomCode: ROOM_CODE, name, nameKey });
-  }
+  const [player] = await db.insert(players)
+    .values({ roomCode: ROOM_CODE, name, nameKey })
+    .onConflictDoUpdate({ target: [players.roomCode, players.nameKey], set: { name } })
+    .returning({ id: players.id, score: players.score });
+  if (!player) return Response.json({ error: "Could not join the room." }, { status: 500 });
 
-  const response = Response.json({ player: { id: playerId, name, score: existing?.score ?? 0 } }, { status: 201 });
-  response.headers.append("Set-Cookie", `${PLAYER_COOKIE}=${encodeURIComponent(playerId)}; Path=/; Max-Age=43200; HttpOnly; Secure; SameSite=Strict`);
+  const response = Response.json({ player: { id: player.id, name, score: player.score } }, { status: 201 });
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  response.headers.append("Set-Cookie", `${PLAYER_COOKIE}=${encodeURIComponent(player.id)}; Path=/; Max-Age=43200; HttpOnly${secure}; SameSite=Strict`);
   return response;
 }
 
@@ -37,6 +34,7 @@ export async function DELETE() {
     await db.delete(players).where(eq(players.id, playerId));
   }
   const response = Response.json({ removed: Boolean(playerId) });
-  response.headers.append("Set-Cookie", `${PLAYER_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`);
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  response.headers.append("Set-Cookie", `${PLAYER_COOKIE}=; Path=/; Max-Age=0; HttpOnly${secure}; SameSite=Strict`);
   return response;
 }
