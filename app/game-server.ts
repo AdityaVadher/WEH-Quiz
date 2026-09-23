@@ -7,10 +7,19 @@ export const PLAYER_COOKIE = "founder_frenzy_player";
 
 export async function ensureGameState() {
   const db = getDb();
-  await db.insert(gameState).values({ roomCode: ROOM_CODE }).onConflictDoNothing();
-  const [state] = await db.select().from(gameState).where(eq(gameState.roomCode, ROOM_CODE)).limit(1);
-  if (!state) throw new Error("Game state could not be initialized.");
-  return state;
+  const [existingState] = await db.select().from(gameState).where(eq(gameState.roomCode, ROOM_CODE)).limit(1);
+  if (existingState) return existingState;
+
+  const [createdState] = await db.insert(gameState)
+    .values({ roomCode: ROOM_CODE })
+    .onConflictDoNothing()
+    .returning();
+  if (createdState) return createdState;
+
+  // Another request may have created the singleton row concurrently.
+  const [concurrentState] = await db.select().from(gameState).where(eq(gameState.roomCode, ROOM_CODE)).limit(1);
+  if (!concurrentState) throw new Error("Game state could not be initialized.");
+  return concurrentState;
 }
 
 export async function getLeaderboard() {

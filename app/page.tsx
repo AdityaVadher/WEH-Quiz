@@ -39,9 +39,17 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const initial = window.setTimeout(() => void refresh(), 0);
-    const timer = window.setInterval(() => void refresh(), 1500);
-    return () => { window.clearTimeout(initial); window.clearInterval(timer); };
+    let cancelled = false;
+    let timer: number | undefined;
+    const poll = async () => {
+      await refresh();
+      if (!cancelled) timer = window.setTimeout(() => void poll(), 1200);
+    };
+    void poll();
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
   }, [refresh]);
 
   async function joinGame() {

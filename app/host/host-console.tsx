@@ -39,9 +39,17 @@ export default function HostConsole({ signOutPath }: { signOutPath: string }) {
   }, []);
 
   useEffect(() => {
-    const initial = window.setTimeout(() => void refresh(), 0);
-    const timer = window.setInterval(() => void refresh(), 1200);
-    return () => { window.clearTimeout(initial); window.clearInterval(timer); };
+    let cancelled = false;
+    let timer: number | undefined;
+    const poll = async () => {
+      await refresh();
+      if (!cancelled) timer = window.setTimeout(() => void poll(), 800);
+    };
+    void poll();
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
   }, [refresh]);
 
   async function hostAction(action: "next_clue" | "previous_clue" | "reveal_answer" | "next_question" | "previous_question" | "set_question" | "reset_question" | "restart_game", options: { question?: number } = {}) {
