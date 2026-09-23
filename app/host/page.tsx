@@ -1,25 +1,41 @@
-import { requireChatGPTUser, chatGPTSignOutPath } from "@/app/chatgpt-auth";
+import { cookies } from "next/headers";
+import Link from "next/link";
+import { Gamepad2, KeyRound, LockKeyhole } from "lucide-react";
 import HostConsole from "./host-console";
+import { getHostPassword, HOST_SESSION_COOKIE, isValidHostSession } from "./host-auth";
 
 export const dynamic = "force-dynamic";
 
-const HOST_ACCOUNT_ID = "35c24833-6310-4340-92c1-a4bb56e704bf";
+export default async function HostPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const password = getHostPassword();
+  const sessionCookie = (await cookies()).get(HOST_SESSION_COOKIE)?.value;
+  const authorized = password ? await isValidHostSession(sessionCookie, password) : false;
 
-export default async function HostPage() {
-  const user = await requireChatGPTUser("/host");
-
-  if (user.userId !== HOST_ACCOUNT_ID) {
+  if (!authorized) {
+    const error = (await searchParams).error;
     return (
       <main className="grid min-h-screen place-items-center bg-[#07111f] px-6 text-[#f7f0dd]">
-        <section className="max-w-lg rounded-[1.75rem] border border-white/10 bg-[#0d1b2b] p-8 text-center shadow-2xl">
-          <p className="eyebrow text-[#ff776b]">Restricted area</p>
-          <h1 className="mt-3 font-display text-4xl">Host access only</h1>
-          <p className="mt-3 text-[#94a9c2]">This account is not authorized to control the game.</p>
-          <a href={chatGPTSignOutPath("/")} className="mt-7 inline-flex rounded-xl bg-[#ffd34e] px-5 py-3 font-bold text-[#17202b]">Return to player game</a>
+        <section className="w-full max-w-md rounded-[1.75rem] border border-white/10 bg-[#0d1b2b] p-8 shadow-2xl">
+          <div className="brand-lockup"><Gamepad2 /> Founder Frenzy</div>
+          <div className="mt-8 grid size-12 place-items-center rounded-2xl bg-[#ff5c4d]/15 text-[#ff776b]"><LockKeyhole /></div>
+          <p className="eyebrow mt-6 text-[#ff776b]">Restricted area</p>
+          <h1 className="mt-2 font-display text-4xl">Enter host mode</h1>
+          <p className="mt-3 text-[#94a9c2]">Use the private host password to control clues, answers and the live game.</p>
+          <form action="/host/login" method="post" className="mt-7 space-y-4">
+            <label htmlFor="host-password" className="block text-sm font-bold text-[#d8e1eb]">Host password</label>
+            <div className="flex items-center rounded-xl border border-white/12 bg-[#081421] px-4 focus-within:border-[#ffd34e]/70">
+              <KeyRound className="size-5 shrink-0 text-[#788da5]" />
+              <input id="host-password" name="password" type="password" autoComplete="current-password" required autoFocus className="h-13 w-full bg-transparent px-3 text-base text-white outline-none placeholder:text-[#61758d]" placeholder="Enter secret password" />
+            </div>
+            {error === "invalid" && <p role="alert" className="text-sm font-semibold text-[#ff8b80]">That password is incorrect. Please try again.</p>}
+            {error === "config" && <p role="alert" className="text-sm font-semibold text-[#ff8b80]">Host access is not configured yet.</p>}
+            <button type="submit" className="flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#ffd34e] font-bold text-[#17202b] transition hover:bg-[#ffe17a]">Unlock host console <KeyRound className="size-4" /></button>
+          </form>
+          <Link href="/" className="mt-5 block text-center text-sm font-bold text-[#8fa4bb] hover:text-white">Return to player game</Link>
         </section>
       </main>
     );
   }
 
-  return <HostConsole displayName={user.displayName} signOutPath={chatGPTSignOutPath("/")} />;
+  return <HostConsole signOutPath="/host/logout" />;
 }

@@ -15,7 +15,7 @@ const clues = [
 ];
 const scores = [50, 40, 30, 20, 10];
 
-export default function HostConsole({ displayName, signOutPath }: { displayName: string; signOutPath: string }) {
+export default function HostConsole({ signOutPath }: { signOutPath: string }) {
   const [clueIndex, setClueIndex] = useState(1);
   const [revealAnswer, setRevealAnswer] = useState(false);
   const answeredCount = 7 + clueIndex * 3;
@@ -45,7 +45,7 @@ export default function HostConsole({ displayName, signOutPath }: { displayName:
       <header className="border-b border-white/10 bg-[#091522]/95 px-4 py-3 sm:px-8">
         <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4">
           <div className="brand-lockup"><Gamepad2 /> Founder Frenzy <Badge className="ml-2 bg-[#ff5c4d]">HOST</Badge></div>
-          <div className="flex items-center gap-4"><span className="hidden text-sm text-[#8fa4bb] sm:block">Signed in as {displayName}</span><a href={signOutPath} className="flex items-center gap-2 text-sm font-bold text-[#ffd34e]"><LogOut className="size-4" /> Exit host</a></div>
+          <a href={signOutPath} className="flex items-center gap-2 text-sm font-bold text-[#ffd34e]"><LogOut className="size-4" /> Lock host console</a>
         </div>
       </header>
 
