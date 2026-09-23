@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
-    path: "/host",
+    path: "/",
     maxAge: HOST_SESSION_TTL_SECONDS,
   });
   return response;

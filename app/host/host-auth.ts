@@ -27,6 +27,11 @@ export async function isValidHostSession(token: string | undefined, password: st
   return constantTimeEqual(suppliedSignature, expectedSignature);
 }
 
+export async function isHostRequestAuthorized(token: string | undefined): Promise<boolean> {
+  const password = getHostPassword();
+  return password ? isValidHostSession(token, password) : false;
+}
+
 async function sign(payload: string, password: string): Promise<string> {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
