@@ -1,5 +1,4 @@
 import { cookies } from "next/headers";
-import Link from "next/link";
 import { Gamepad2, KeyRound, LockKeyhole } from "lucide-react";
 import HostConsole from "./host-console";
 import { getHostPassword, HOST_SESSION_COOKIE, isValidHostSession } from "./host-auth";
@@ -31,7 +30,8 @@ export default async function HostPage({ searchParams }: { searchParams: Promise
             {error === "config" && <p role="alert" className="text-sm font-semibold text-[#ff8b80]">Host access is not configured yet.</p>}
             <button type="submit" className="flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#ffd34e] font-bold text-[#17202b] transition hover:bg-[#ffe17a]">Unlock host console <KeyRound className="size-4" /></button>
           </form>
-          <Link href="/" className="mt-5 block text-center text-sm font-bold text-[#8fa4bb] hover:text-white">Return to player game</Link>
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/" className="mt-5 block text-center text-sm font-bold text-[#8fa4bb] hover:text-white">Return to player game</a>
         </section>
       </main>
     );

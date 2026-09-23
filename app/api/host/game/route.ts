@@ -44,16 +44,38 @@ export async function GET() {
 
 export async function POST(request: Request) {
   if (!(await authorized())) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const payload = (await request.json()) as { action?: string };
+  const payload = (await request.json()) as { action?: string; question?: number };
   const state = await ensureGameState();
   const db = getDb();
 
   if (payload.action === "next_clue") {
     await db.update(gameState).set({ clueIndex: Math.min(state.clueIndex + 1, 4), updatedAt: sql`CURRENT_TIMESTAMP` }).where(eq(gameState.roomCode, ROOM_CODE));
+  } else if (payload.action === "previous_clue") {
+    await db.update(gameState).set({ clueIndex: Math.max(state.clueIndex - 1, 0), updatedAt: sql`CURRENT_TIMESTAMP` }).where(eq(gameState.roomCode, ROOM_CODE));
   } else if (payload.action === "reveal_answer") {
     await db.update(gameState).set({ answerRevealed: true, updatedAt: sql`CURRENT_TIMESTAMP` }).where(eq(gameState.roomCode, ROOM_CODE));
   } else if (payload.action === "next_question") {
     await db.update(gameState).set({ roundIndex: Math.min(state.roundIndex + 1, quizRounds.length - 1), clueIndex: 0, answerRevealed: false, updatedAt: sql`CURRENT_TIMESTAMP` }).where(eq(gameState.roomCode, ROOM_CODE));
+  } else if (payload.action === "previous_question") {
+    await db.update(gameState).set({ roundIndex: Math.max(state.roundIndex - 1, 0), clueIndex: 0, answerRevealed: false, updatedAt: sql`CURRENT_TIMESTAMP` }).where(eq(gameState.roomCode, ROOM_CODE));
+  } else if (payload.action === "set_question") {
+    if (!Number.isInteger(payload.question) || !payload.question || payload.question < 1 || payload.question > quizRounds.length) {
+      return Response.json({ error: `Question must be between 1 and ${quizRounds.length}.` }, { status: 400 });
+    }
+    await db.update(gameState).set({ roundIndex: payload.question - 1, clueIndex: 0, answerRevealed: false, updatedAt: sql`CURRENT_TIMESTAMP` }).where(eq(gameState.roomCode, ROOM_CODE));
+  } else if (payload.action === "reset_question") {
+    const roundGuesses = await db.select({ playerId: guesses.playerId, points: guesses.points })
+      .from(guesses)
+      .where(and(eq(guesses.roomCode, ROOM_CODE), eq(guesses.roundIndex, state.roundIndex)));
+    for (const guess of roundGuesses) {
+      if (guess.points > 0) {
+        await db.update(players)
+          .set({ score: sql`MAX(0, ${players.score} - ${guess.points})` })
+          .where(and(eq(players.roomCode, ROOM_CODE), eq(players.id, guess.playerId)));
+      }
+    }
+    await db.delete(guesses).where(and(eq(guesses.roomCode, ROOM_CODE), eq(guesses.roundIndex, state.roundIndex)));
+    await db.update(gameState).set({ clueIndex: 0, answerRevealed: false, updatedAt: sql`CURRENT_TIMESTAMP` }).where(eq(gameState.roomCode, ROOM_CODE));
   } else if (payload.action === "restart_game") {
     await db.delete(guesses).where(eq(guesses.roomCode, ROOM_CODE));
     await db.update(players).set({ score: 0 }).where(eq(players.roomCode, ROOM_CODE));
