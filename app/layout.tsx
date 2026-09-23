@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Founder Frenzy Live",
-  description: "A live founder quiz with one guess per round, host controls, and a leaderboard.",
+  description: "A live founder quiz with one guess per round and a fast-moving leaderboard.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
