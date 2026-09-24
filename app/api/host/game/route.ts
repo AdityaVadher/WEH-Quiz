@@ -18,14 +18,22 @@ export async function GET() {
   const state = await ensureGameState();
   const round = quizRounds[state.roundIndex] ?? quizRounds[0];
   const clue = round.clues[state.clueIndex] ?? round.clues[0];
+  const lastQuestionIndex = state.answerRevealed ? state.roundIndex : state.roundIndex > 0 ? state.roundIndex - 1 : null;
   const db = getDb();
-  const [leaderboard, liveGuesses] = await Promise.all([
+  const [leaderboard, liveGuesses, lastQuestionGuesses] = await Promise.all([
     getHostLeaderboard(),
     db.select({ playerName: players.name, playerEmail: players.email, guess: guesses.guess, clueIndex: guesses.clueIndex, correct: guesses.correct, points: guesses.points })
       .from(guesses)
       .innerJoin(players, eq(players.id, guesses.playerId))
       .where(and(eq(guesses.roomCode, ROOM_CODE), eq(guesses.roundIndex, state.roundIndex)))
       .orderBy(asc(guesses.submittedAt)),
+    lastQuestionIndex === null
+      ? Promise.resolve([])
+      : db.select({ playerName: players.name, playerEmail: players.email, clueIndex: guesses.clueIndex, correct: guesses.correct, points: guesses.points })
+        .from(guesses)
+        .innerJoin(players, eq(players.id, guesses.playerId))
+        .where(and(eq(guesses.roomCode, ROOM_CODE), eq(guesses.roundIndex, lastQuestionIndex)))
+        .orderBy(asc(guesses.submittedAt)),
   ]);
   return Response.json({
     roomCode: ROOM_CODE,
@@ -41,6 +49,16 @@ export async function GET() {
     answeredCount: liveGuesses.length,
     leaderboard: leaderboard.map((entry, index) => ({ ...entry, rank: index + 1 })),
     guesses: liveGuesses.map((entry) => ({ ...entry, clueNumber: entry.clueIndex + 1 })),
+    lastQuestionResults: lastQuestionIndex === null ? null : {
+      question: quizRounds[lastQuestionIndex]?.question ?? lastQuestionIndex + 1,
+      correctCount: lastQuestionGuesses.filter((entry) => entry.correct).length,
+      answeredCount: lastQuestionGuesses.length,
+      firstFive: lastQuestionGuesses.slice(0, 5).map((entry, index) => ({
+        ...entry,
+        position: index + 1,
+        clueNumber: entry.clueIndex + 1,
+      })),
+    },
   });
 }
 
