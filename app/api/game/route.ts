@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { getLeaderboard, getPlayer, getPlayerGuess, PLAYER_COOKIE, ROOM_CODE, ensureGameState } from "@/app/game-server";
+import { getLeaderboard, getPlayerWithGuess, PLAYER_COOKIE, ROOM_CODE, ensureGameState } from "@/app/game-server";
 import { quizRounds } from "@/app/quiz-data";
 
 export const dynamic = "force-dynamic";
@@ -9,11 +9,11 @@ export async function GET() {
   const round = quizRounds[state.roundIndex] ?? quizRounds[0];
   const clue = round.clues[state.clueIndex] ?? round.clues[0];
   const playerId = (await cookies()).get(PLAYER_COOKIE)?.value;
-  const [player, playerGuess, leaderboard] = await Promise.all([
-    getPlayer(playerId),
-    getPlayerGuess(playerId, state.roundIndex),
+  const [playerState, leaderboard] = await Promise.all([
+    getPlayerWithGuess(playerId, state.roundIndex),
     getLeaderboard(),
   ]);
+  const { player, playerGuess } = playerState;
 
   return Response.json({
     roomCode: ROOM_CODE,

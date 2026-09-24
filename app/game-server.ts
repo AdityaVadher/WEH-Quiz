@@ -42,12 +42,14 @@ export async function getPlayer(playerId: string | undefined) {
   return player ?? null;
 }
 
-export async function getPlayerGuess(playerId: string | undefined, roundIndex: number) {
-  if (!playerId) return null;
-  const [guess] = await getDb().select().from(guesses)
-    .where(and(eq(guesses.playerId, playerId), eq(guesses.roundIndex, roundIndex)))
+export async function getPlayerWithGuess(playerId: string | undefined, roundIndex: number) {
+  if (!playerId) return { player: null, playerGuess: null };
+  const [result] = await getDb().select({ player: players, playerGuess: guesses })
+    .from(players)
+    .leftJoin(guesses, and(eq(guesses.playerId, players.id), eq(guesses.roundIndex, roundIndex)))
+    .where(and(eq(players.id, playerId), eq(players.roomCode, ROOM_CODE)))
     .limit(1);
-  return guess ?? null;
+  return result ?? { player: null, playerGuess: null };
 }
 
 export function normalizePlayerName(name: string): string {

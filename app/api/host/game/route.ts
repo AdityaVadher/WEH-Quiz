@@ -22,7 +22,7 @@ async function getHostGame() {
   const db = getDb();
   const [leaderboard, resultGuesses] = await Promise.all([
     getHostLeaderboard(),
-    db.select({ roundIndex: guesses.roundIndex, playerName: players.name, playerEmail: players.email, guess: guesses.guess, clueIndex: guesses.clueIndex, correct: guesses.correct, points: guesses.points })
+    db.select({ roundIndex: guesses.roundIndex, playerId: players.id, playerName: players.name, playerEmail: players.email, guess: guesses.guess, clueIndex: guesses.clueIndex, correct: guesses.correct, points: guesses.points })
       .from(guesses)
       .innerJoin(players, eq(players.id, guesses.playerId))
       .where(and(eq(guesses.roomCode, ROOM_CODE), inArray(guesses.roundIndex, resultRoundIndexes)))
