@@ -15,7 +15,7 @@ export default async function HostPage({ searchParams }: { searchParams: Promise
     return (
       <main className="grid min-h-screen place-items-center bg-[#07111f] px-6 text-[#f7f0dd]">
         <section className="w-full max-w-md rounded-[1.75rem] border border-white/10 bg-[#0d1b2b] p-8 shadow-2xl">
-          <div className="brand-lockup"><Gamepad2 /> Founder Frenzy</div>
+          <div className="brand-lockup"><Gamepad2 /> Guess the Founder</div>
           <div className="mt-8 grid size-12 place-items-center rounded-2xl bg-[#ff5c4d]/15 text-[#ff776b]"><LockKeyhole /></div>
           <p className="eyebrow mt-6 text-[#ff776b]">Restricted area</p>
           <h1 className="mt-2 font-display text-4xl">Enter host mode</h1>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Founder Frenzy Live",
+  title: "Guess the Founder",
   description: "A live founder quiz with one guess per round and a fast-moving leaderboard.",
   icons: {
     icon: "/favicon.svg",

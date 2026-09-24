@@ -88,7 +88,7 @@ export default function HostConsole({ signOutPath }: { signOutPath: string }) {
   const participation = game.playerCount ? Math.round((game.answeredCount / game.playerCount) * 100) : 0;
 
   return <main className="min-h-screen bg-[#07111f] text-[#f7f0dd]">
-    <header className="border-b border-white/10 bg-[#091522]/95 px-4 py-3 sm:px-8"><div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4"><div className="brand-lockup"><Gamepad2 /> Founder Frenzy <Badge className="ml-2 bg-[#ff5c4d]">HOST</Badge></div><a href={signOutPath} className="flex items-center gap-2 text-sm font-bold text-[#ffd34e]"><LogOut className="size-4" /> Lock host console</a></div></header>
+    <header className="border-b border-white/10 bg-[#091522]/95 px-4 py-3 sm:px-8"><div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4"><div className="brand-lockup"><Gamepad2 /> Guess the Founder <Badge className="ml-2 bg-[#ff5c4d]">HOST</Badge></div><a href={signOutPath} className="flex items-center gap-2 text-sm font-bold text-[#ffd34e]"><LogOut className="size-4" /> Lock host console</a></div></header>
     <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-8">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4"><div><p className="eyebrow text-[#7f95ad]">Protected host control</p><h1 className="mt-1 font-display text-4xl sm:text-5xl">Question {game.question} of {game.totalQuestions}</h1></div><Button className="bg-[#ffd34e] font-bold text-[#18212c] hover:bg-[#ffe17a]"><Trophy /> {game.playerCount} players</Button></div>
       {error && <p role="alert" className="mb-4 rounded-xl border border-[#ff776b]/30 bg-[#ff776b]/10 p-3 text-sm font-semibold text-[#ff9b92]">{error}</p>}
