@@ -92,13 +92,6 @@ export default function Home() {
     }
   }
 
-  async function leaveRoom() {
-    await fetch("/api/players", { method: "DELETE" });
-    setGuess("");
-    setView("player");
-    await refresh();
-  }
-
   useEffect(() => {
     const context = (document as Document & { modelContext?: { registerTool?: (tool: unknown, options?: unknown) => void | Promise<void> } }).modelContext;
     if (!context?.registerTool) return;
@@ -146,7 +139,6 @@ export default function Home() {
     </div></section><aside className="space-y-5"><section className="dark-card"><div className="flex items-center justify-between"><div><p className="eyebrow text-[#8198b2]">Your position</p><p className="mt-1 font-display text-4xl">#{playerRank}</p></div><div className="rounded-2xl bg-[#ffd34e] p-3 text-[#222a36]"><Trophy /></div></div><div className="mt-6 flex items-end justify-between"><div><p className="text-sm text-[#8ba0b7]">Total score</p><p className="font-display text-3xl">{game.player.score}</p></div><span className="text-sm font-bold text-[#71d3b4]">{game.player.name}</span></div></section><section className="dark-card"><div className="flex items-center justify-between"><h2 className="font-display text-2xl">Top players</h2><button onClick={() => setView("leaderboard")} className="text-sm font-bold text-[#ffd34e]">View all</button></div><div className="mt-4 space-y-2">{game.leaderboard.slice(0, 5).map((player) => <LeaderboardRow key={player.id} player={player} />)}</div></section><section className="rounded-2xl border border-white/10 bg-[#0e1c2c] p-5"><div className="flex items-center gap-3"><div className="rounded-xl bg-[#ff5c4d]/15 p-2 text-[#ff786c]"><LockKeyhole /></div><div><p className="font-bold">One guess per round</p><p className="text-sm text-[#8298b1]">Earlier correct guesses win more points.</p></div></div></section></aside></div>}
 
     {view === "leaderboard" && <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8"><div className="text-center"><p className="eyebrow text-[#ffd34e]">After question {game.question}</p><h1 className="mt-2 font-display text-5xl sm:text-7xl">Leaderboard</h1><p className="mt-3 text-[#8ca1b8]">Only players who joined this room appear here.</p></div>{game.leaderboard.length ? <><div className="mt-10 grid grid-cols-3 items-end gap-3 sm:gap-5">{game.leaderboard.slice(0, 3).map((player, index) => <Podium key={player.id} player={player} index={index} />)}</div><section className="mt-6 rounded-[1.7rem] border border-white/10 bg-[#0d1b2b] p-4 sm:p-6"><div className="space-y-2">{game.leaderboard.map((player) => <LeaderboardRow key={player.id} player={player} large />)}</div></section></> : <section className="mx-auto mt-10 max-w-lg rounded-[1.7rem] border border-dashed border-white/15 bg-[#0d1b2b] p-10 text-center"><Users className="mx-auto size-10 text-[#607892]" /><p className="mt-4 font-display text-3xl">No players yet</p><p className="mt-2 text-[#8ca1b8]">The leaderboard will populate as people join.</p></section>}<div className="mt-6 flex justify-center"><Button onClick={() => setView("player")} className="bg-[#ffd34e] font-bold text-[#18212c] hover:bg-[#ffe17a]">Back to game <Play /></Button></div></div>}
-    <button onClick={() => void leaveRoom()} className="fixed bottom-4 right-4 rounded-full border border-white/10 bg-[#0e1c2c] px-4 py-2 text-xs font-bold text-[#91a5bc] shadow-xl hover:text-white">Leave room</button>
   </main>;
 }
 
