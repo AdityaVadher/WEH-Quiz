@@ -13,8 +13,7 @@ async function authorized() {
   return isHostRequestAuthorized(token);
 }
 
-export async function GET() {
-  if (!(await authorized())) return Response.json({ error: "Unauthorized" }, { status: 401 });
+async function getHostGame() {
   const state = await ensureGameState();
   const round = quizRounds[state.roundIndex] ?? quizRounds[0];
   const clue = round.clues[state.clueIndex] ?? round.clues[0];
@@ -31,7 +30,7 @@ export async function GET() {
   ]);
   const liveGuesses = resultGuesses.filter((entry) => entry.roundIndex === state.roundIndex);
   const lastQuestionGuesses = lastQuestionIndex === null ? [] : resultGuesses.filter((entry) => entry.roundIndex === lastQuestionIndex);
-  return Response.json({
+  return {
     roomCode: ROOM_CODE,
     question: round.question,
     totalQuestions: quizRounds.length,
@@ -55,7 +54,12 @@ export async function GET() {
         clueNumber: entry.clueIndex + 1,
       })),
     },
-  });
+  };
+}
+
+export async function GET() {
+  if (!(await authorized())) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  return Response.json(await getHostGame());
 }
 
 export async function POST(request: Request) {
@@ -113,5 +117,5 @@ export async function POST(request: Request) {
   } else {
     return Response.json({ error: "Unknown host action." }, { status: 400 });
   }
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, game: await getHostGame() });
 }

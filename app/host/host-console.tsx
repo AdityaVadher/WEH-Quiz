@@ -74,11 +74,16 @@ export default function HostConsole({ signOutPath }: { signOutPath: string }) {
     setBusy(true);
     try {
       const response = await fetch("/api/host/game", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action, ...options }) });
+      const data = await response.json().catch(() => null) as { error?: string; game?: HostGame } | null;
       if (!response.ok) {
-        const data = await response.json().catch(() => null) as { error?: string } | null;
         throw new Error(data?.error || "The host action could not be completed.");
       }
-      await refresh();
+      if (data?.game) {
+        setGame(data.game);
+        setError("");
+      } else {
+        await refresh();
+      }
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : "The host action could not be completed.");
     } finally {
