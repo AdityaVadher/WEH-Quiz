@@ -6,6 +6,8 @@ import { ensureGameState, getHostLeaderboard, ROOM_CODE } from "@/app/game-serve
 import { quizRounds } from "@/app/quiz-data";
 import { isHostRequestAuthorized } from "@/app/host/host-auth";
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 async function authorized() {
   const token = (await cookies()).get("founder_frenzy_host")?.value;
   return isHostRequestAuthorized(token);
@@ -44,7 +46,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   if (!(await authorized())) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const payload = (await request.json()) as { action?: string; question?: number };
+  const payload = (await request.json()) as { action?: string; question?: number; playerId?: string };
   const state = await ensureGameState();
   const db = getDb();
 
@@ -84,6 +86,16 @@ export async function POST(request: Request) {
       await tx.update(players).set({ score: 0 }).where(eq(players.roomCode, ROOM_CODE));
       await tx.update(gameState).set({ roundIndex: 0, clueIndex: 0, answerRevealed: false, updatedAt: sql`CURRENT_TIMESTAMP` }).where(eq(gameState.roomCode, ROOM_CODE));
     });
+  } else if (payload.action === "remove_player") {
+    if (!payload.playerId || !UUID_PATTERN.test(payload.playerId)) {
+      return Response.json({ error: "Select a valid player to remove." }, { status: 400 });
+    }
+    const removedPlayers = await db.delete(players)
+      .where(and(eq(players.roomCode, ROOM_CODE), eq(players.id, payload.playerId)))
+      .returning({ id: players.id });
+    if (!removedPlayers.length) {
+      return Response.json({ error: "Player not found." }, { status: 404 });
+    }
   } else {
     return Response.json({ error: "Unknown host action." }, { status: 400 });
   }
