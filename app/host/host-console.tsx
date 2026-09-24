@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -32,15 +32,22 @@ export default function HostConsole({ signOutPath }: { signOutPath: string }) {
   const [game, setGame] = useState<HostGame | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const actionInFlight = useRef(false);
+  const refreshController = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
+    const controller = new AbortController();
+    refreshController.current = controller;
     try {
-      const response = await fetch("/api/host/game", { cache: "no-store" });
+      const response = await fetch("/api/host/game", { cache: "no-store", signal: controller.signal });
       if (!response.ok) throw new Error("Could not load the host game state.");
       setGame(await response.json() as HostGame);
       setError("");
     } catch (refreshError) {
+      if (refreshError instanceof DOMException && refreshError.name === "AbortError") return;
       setError(refreshError instanceof Error ? refreshError.message : "Could not load the host game state.");
+    } finally {
+      if (refreshController.current === controller) refreshController.current = null;
     }
   }, []);
 
@@ -48,19 +55,22 @@ export default function HostConsole({ signOutPath }: { signOutPath: string }) {
     let cancelled = false;
     let timer: number | undefined;
     const poll = async () => {
-      await refresh();
-      if (!cancelled) timer = window.setTimeout(() => void poll(), 800);
+      if (!actionInFlight.current) await refresh();
+      if (!cancelled) timer = window.setTimeout(() => void poll(), 1200);
     };
     void poll();
     return () => {
       cancelled = true;
       if (timer !== undefined) window.clearTimeout(timer);
+      refreshController.current?.abort();
     };
   }, [refresh]);
 
   async function hostAction(action: "next_clue" | "previous_clue" | "reveal_answer" | "next_question" | "previous_question" | "set_question" | "reset_question" | "restart_game" | "remove_player", options: { question?: number; playerId?: string } = {}) {
     if (action === "reset_question" && !window.confirm("Reset this question? Its answers will be cleared and points earned here will be removed.")) return;
     if (action === "restart_game" && !window.confirm("Reset the entire quiz? All answers and scores will be cleared, and the game will return to Question 1.")) return;
+    actionInFlight.current = true;
+    refreshController.current?.abort();
     setBusy(true);
     try {
       const response = await fetch("/api/host/game", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action, ...options }) });
@@ -72,6 +82,7 @@ export default function HostConsole({ signOutPath }: { signOutPath: string }) {
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : "The host action could not be completed.");
     } finally {
+      actionInFlight.current = false;
       setBusy(false);
     }
   }

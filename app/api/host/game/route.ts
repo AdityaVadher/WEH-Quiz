@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { gameState, guesses, players } from "@/db/schema";
 import { ensureGameState, getHostLeaderboard, ROOM_CODE } from "@/app/game-server";
@@ -19,22 +19,18 @@ export async function GET() {
   const round = quizRounds[state.roundIndex] ?? quizRounds[0];
   const clue = round.clues[state.clueIndex] ?? round.clues[0];
   const lastQuestionIndex = state.answerRevealed ? state.roundIndex : state.roundIndex > 0 ? state.roundIndex - 1 : null;
+  const resultRoundIndexes = [...new Set([state.roundIndex, lastQuestionIndex].filter((index): index is number => index !== null))];
   const db = getDb();
-  const [leaderboard, liveGuesses, lastQuestionGuesses] = await Promise.all([
+  const [leaderboard, resultGuesses] = await Promise.all([
     getHostLeaderboard(),
-    db.select({ playerName: players.name, playerEmail: players.email, guess: guesses.guess, clueIndex: guesses.clueIndex, correct: guesses.correct, points: guesses.points })
+    db.select({ roundIndex: guesses.roundIndex, playerName: players.name, playerEmail: players.email, guess: guesses.guess, clueIndex: guesses.clueIndex, correct: guesses.correct, points: guesses.points })
       .from(guesses)
       .innerJoin(players, eq(players.id, guesses.playerId))
-      .where(and(eq(guesses.roomCode, ROOM_CODE), eq(guesses.roundIndex, state.roundIndex)))
+      .where(and(eq(guesses.roomCode, ROOM_CODE), inArray(guesses.roundIndex, resultRoundIndexes)))
       .orderBy(asc(guesses.submittedAt)),
-    lastQuestionIndex === null
-      ? Promise.resolve([])
-      : db.select({ playerName: players.name, playerEmail: players.email, clueIndex: guesses.clueIndex, correct: guesses.correct, points: guesses.points })
-        .from(guesses)
-        .innerJoin(players, eq(players.id, guesses.playerId))
-        .where(and(eq(guesses.roomCode, ROOM_CODE), eq(guesses.roundIndex, lastQuestionIndex)))
-        .orderBy(asc(guesses.submittedAt)),
   ]);
+  const liveGuesses = resultGuesses.filter((entry) => entry.roundIndex === state.roundIndex);
+  const lastQuestionGuesses = lastQuestionIndex === null ? [] : resultGuesses.filter((entry) => entry.roundIndex === lastQuestionIndex);
   return Response.json({
     roomCode: ROOM_CODE,
     question: round.question,
