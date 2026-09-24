@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,12 +27,18 @@ export default function Home() {
   const [guess, setGuess] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const activeQuestion = useRef<number | null>(null);
 
   const refresh = useCallback(async () => {
     try {
       const response = await fetch("/api/game", { cache: "no-store" });
       if (!response.ok) throw new Error("Could not load the live game.");
-      setGame(await response.json() as GameData);
+      const nextGame = await response.json() as GameData;
+      if (activeQuestion.current !== null && activeQuestion.current !== nextGame.question) {
+        setGuess("");
+      }
+      activeQuestion.current = nextGame.question;
+      setGame(nextGame);
       setError("");
     } catch (refreshError) {
       setError(refreshError instanceof Error ? refreshError.message : "Could not load the live game.");
