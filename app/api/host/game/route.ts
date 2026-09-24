@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { gameState, guesses, players } from "@/db/schema";
-import { ensureGameState, getLeaderboard, ROOM_CODE } from "@/app/game-server";
+import { ensureGameState, getHostLeaderboard, ROOM_CODE } from "@/app/game-server";
 import { quizRounds } from "@/app/quiz-data";
 import { isHostRequestAuthorized } from "@/app/host/host-auth";
 
@@ -18,8 +18,8 @@ export async function GET() {
   const clue = round.clues[state.clueIndex] ?? round.clues[0];
   const db = getDb();
   const [leaderboard, liveGuesses] = await Promise.all([
-    getLeaderboard(),
-    db.select({ playerName: players.name, guess: guesses.guess, clueIndex: guesses.clueIndex, correct: guesses.correct, points: guesses.points })
+    getHostLeaderboard(),
+    db.select({ playerName: players.name, playerEmail: players.email, guess: guesses.guess, clueIndex: guesses.clueIndex, correct: guesses.correct, points: guesses.points })
       .from(guesses)
       .innerJoin(players, eq(players.id, guesses.playerId))
       .where(and(eq(guesses.roomCode, ROOM_CODE), eq(guesses.roundIndex, state.roundIndex)))

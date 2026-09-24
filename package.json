@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "stress:test": "node scripts/stress-test.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "supabase migration up"
   },

@@ -29,6 +29,13 @@ export async function getLeaderboard() {
     .orderBy(desc(players.score), asc(players.joinedAt), asc(players.name));
 }
 
+export async function getHostLeaderboard() {
+  return getDb().select({ id: players.id, name: players.name, email: players.email, score: players.score })
+    .from(players)
+    .where(eq(players.roomCode, ROOM_CODE))
+    .orderBy(desc(players.score), asc(players.joinedAt), asc(players.name));
+}
+
 export async function getPlayer(playerId: string | undefined) {
   if (!playerId) return null;
   const [player] = await getDb().select().from(players).where(and(eq(players.id, playerId), eq(players.roomCode, ROOM_CODE))).limit(1);
@@ -45,4 +52,8 @@ export async function getPlayerGuess(playerId: string | undefined, roundIndex: n
 
 export function normalizePlayerName(name: string): string {
   return name.trim().toLocaleLowerCase("en").replace(/\s+/g, " ");
+}
+
+export function normalizePlayerEmail(email: string): string {
+  return email.trim().toLocaleLowerCase("en");
 }

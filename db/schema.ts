@@ -5,10 +5,12 @@ export const players = pgTable("players", {
   roomCode: text("room_code").notNull(),
   name: text("name").notNull(),
   nameKey: text("name_key").notNull(),
+  email: text("email"),
+  emailKey: text("email_key"),
   score: integer("score").notNull().default(0),
   joinedAt: timestamp("joined_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 }, (table) => [
-  uniqueIndex("players_room_name_key").on(table.roomCode, table.nameKey),
+  uniqueIndex("players_room_email_key").on(table.roomCode, table.emailKey),
   index("players_room_score_idx").on(table.roomCode, table.score.desc(), table.joinedAt.asc()),
 ]);
 

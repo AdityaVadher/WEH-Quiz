@@ -15,11 +15,14 @@ type GameData = {
 };
 type View = "player" | "leaderboard";
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function Home() {
   const [view, setView] = useState<View>("player");
   const [game, setGame] = useState<GameData | null>(null);
   const [loading, setLoading] = useState(true);
   const [playerName, setPlayerName] = useState("");
+  const [playerEmail, setPlayerEmail] = useState("");
   const [roomCode, setRoomCode] = useState("WEH-742");
   const [guess, setGuess] = useState("");
   const [error, setError] = useState("");
@@ -56,7 +59,7 @@ export default function Home() {
     setSubmitting(true);
     setError("");
     try {
-      const response = await fetch("/api/players", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: playerName, roomCode }) });
+      const response = await fetch("/api/players", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: playerName, email: playerEmail, roomCode }) });
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error || "Could not join this room.");
       await refresh();
@@ -120,7 +123,7 @@ export default function Home() {
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-6xl items-center justify-center">
         <section className="grid w-full overflow-hidden rounded-[2rem] border border-white/10 bg-[#0d1b2d] shadow-2xl lg:grid-cols-[1.05fr_.95fr]">
           <div className="relative min-h-[370px] overflow-hidden bg-[#ff5c4d] p-8 sm:p-12"><div className="sunburst" /><div className="relative z-10 flex h-full flex-col justify-between"><div className="brand-lockup"><Gamepad2 /> Founder Frenzy</div><div><p className="eyebrow text-[#37140f]">Live founder quiz</p><h1 className="mt-3 max-w-lg font-display text-5xl leading-[.94] text-[#27110e] sm:text-7xl">Spot the founder before everyone else.</h1></div><div className="flex items-center gap-3 text-sm font-semibold text-[#37140f]"><Zap className="size-4" /> One guess. Five clues. No second chances.</div></div></div>
-          <div className="flex flex-col justify-center p-8 sm:p-12"><Badge className="mb-6 w-fit border-white/10 bg-white/8 text-[#ffd95e]">Players join here</Badge><h2 className="font-display text-4xl">Enter the room</h2><p className="mt-2 text-[#9fb1c8]">Your name appears on the leaderboard only after you join.</p><div className="mt-8 space-y-5"><label className="block text-sm font-semibold">Display name<Input value={playerName} onChange={(event) => setPlayerName(event.target.value)} className="mt-2 h-12 border-white/10 bg-[#081421] text-base text-white" placeholder="Your name" maxLength={28} /></label><label className="block text-sm font-semibold">Room code<Input value={roomCode} onChange={(event) => setRoomCode(event.target.value.toUpperCase())} className="mt-2 h-12 border-white/10 bg-[#081421] font-mono text-lg tracking-[.18em] text-white" /></label>{error && <p role="alert" className="text-sm font-semibold text-[#ff8b80]">{error}</p>}<Button onClick={joinGame} disabled={submitting || playerName.trim().length < 2} className="h-13 w-full rounded-xl bg-[#ffd34e] text-base font-bold text-[#1b2230] hover:bg-[#ffe078]">{submitting ? "Joining…" : "Join game"} <ArrowRight /></Button></div></div>
+          <div className="flex flex-col justify-center p-8 sm:p-12"><Badge className="mb-6 w-fit border-white/10 bg-white/8 text-[#ffd95e]">Players join here</Badge><h2 className="font-display text-4xl">Enter the room</h2><p className="mt-2 text-[#9fb1c8]">Only your name appears in the game. Your email is visible to the host only.</p><div className="mt-8 space-y-5"><label className="block text-sm font-semibold">Display name<Input value={playerName} onChange={(event) => setPlayerName(event.target.value)} className="mt-2 h-12 border-white/10 bg-[#081421] text-base text-white" placeholder="Your name" maxLength={28} /></label><label className="block text-sm font-semibold">Email address<Input type="email" value={playerEmail} onChange={(event) => setPlayerEmail(event.target.value)} className="mt-2 h-12 border-white/10 bg-[#081421] text-base text-white" placeholder="you@example.com" autoComplete="email" maxLength={254} /></label><label className="block text-sm font-semibold">Room code<Input value={roomCode} onChange={(event) => setRoomCode(event.target.value.toUpperCase())} className="mt-2 h-12 border-white/10 bg-[#081421] font-mono text-lg tracking-[.18em] text-white" /></label>{error && <p role="alert" className="text-sm font-semibold text-[#ff8b80]">{error}</p>}<Button onClick={joinGame} disabled={submitting || playerName.trim().length < 2 || !EMAIL_PATTERN.test(playerEmail.trim())} className="h-13 w-full rounded-xl bg-[#ffd34e] text-base font-bold text-[#1b2230] hover:bg-[#ffe078]">{submitting ? "Joining…" : "Join game"} <ArrowRight /></Button></div></div>
         </section>
       </div>
     </main>
